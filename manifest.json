@@ -1,12 +1,21 @@
 {
   "name": "SW2.5 ダイスロール",
-  "short_name": "SW2.5 Dice",
+  "short_name": "SW2.5 ダイス",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
   "icons": [
-    { "src": "icons/dice-icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/dice-icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "description": "Sword World 2.5 用のダイスロール（2d6系・1d1〜1d100・カスタム・ログ保存・PWA）"
 }
