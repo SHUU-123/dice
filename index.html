@@ -88,7 +88,7 @@
       <div id="log" class="log" aria-live="polite" aria-atomic="false"></div>
     </section>
 
-    <div class="footer">※ クリティカル／ファンブル判定: <strong>2d6系</strong> は両方6→クリティカル、両方1→ファンブル。<strong>単発</strong>は最大→クリティカル、1→ファンブル。任意ダイスは全て最大 or 全て1で同様に扱います。</div>
+    <div class="footer">※ クリティカル／ファンブル判定: <strong>2d6系</strong> は両方6→クリティカル、両方1→ファンブル。</div>
   </div>
 
 <script>
@@ -111,7 +111,6 @@ function rollDice(count, sides){
 
 /* クリティカル／ファンブル判定（SW2.5風）:
    - 多数ダイス: 全てが最大 => クリティカル / 全てが1 => ファンブル
-   - 単発(d1〜d100): 最大=クリティカル、1=ファンブル
    - 2d6系: 特に「両方6」=クリティカル、「両方1」=ファンブル
 */
 function judgeCritFumble(rolls, sides){
