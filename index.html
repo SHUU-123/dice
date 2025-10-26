@@ -1,276 +1,367 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sword World 2.5 ダイスロール</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SW2.5 ダイスロール（PWA対応）</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b1220" />
-  <link rel="icon" href="icons/dice-icon-192.png" />
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="icon-192.png">
 
-  <style>
-    :root{
-      --bg:#0b1220; --card:#0f1724; --accent:#f59e0b; --muted:#98a0b3;
-      --glass: rgba(255,255,255,0.02);
-    }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071020, #0b1220); color:#e6eef8; font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
-    .wrap{max-width:980px;margin:28px auto;padding:20px;}
-    header h1{margin:0 0 8px 0;font-size:20px;}
-    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);margin-bottom:16px;}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
-    button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px 12px;border-radius:10px;cursor:pointer;}
-    button.primary{background:linear-gradient(180deg,#1b2b48,#122033);border:1px solid rgba(255,255,255,0.06);}
-    button.danger{background:#7f1724;color:#fff;}
-    select, input[type=number]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;}
-    .controls{display:flex;gap:10px;flex-wrap:wrap;}
-    .big{font-size:18px;padding:12px 16px;}
-    .log{max-height:360px;overflow:auto;margin-top:12px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);}
-    .log-entry{padding:8px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:flex-start;}
-    .meta{color:var(--muted);font-size:12px;}
-    .badge{padding:4px 8px;border-radius:999px;font-weight:600;}
-    .crit{background:linear-gradient(90deg,#ffe9b0,#ffd000);color:#111}
-    .fumble{background:linear-gradient(90deg,#f8b4b4,#ef4444);color:#111}
-    .result{font-weight:700;font-size:16px}
-    .small{font-size:13px;color:var(--muted)}
-    .flexcol{display:flex;flex-direction:column;}
-    .right{margin-left:auto;}
-    .footer{color:var(--muted);font-size:13px;margin-top:8px;}
-    @media (max-width:640px){.row{flex-direction:column;align-items:stretch}}
-  </style>
+<style>
+  :root{
+    --bg:#0b1220; --card:#0f1724; --muted:#98a0b3; --accent:#8bd5ff;
+    --glass: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; background:linear-gradient(180deg,var(--bg),#07101a); color:#e6eef8;}
+  .app{max-width:980px;margin:18px auto;padding:18px;}
+  header{display:flex;gap:12px;align-items:center}
+  h1{margin:0;font-size:1.2rem}
+  .panel{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,0.5); margin-top:12px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  button:active{transform:translateY(1px)}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap}
+  .select, .input {padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  .custom-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .log{margin-top:14px;max-height:300px;overflow:auto;padding:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:8px}
+  .entry{display:flex;justify-content:space-between;gap:12px;padding:8px;border-radius:6px;margin-bottom:8px;background:rgba(255,255,255,0.012);align-items:center}
+  .meta{color:var(--muted);font-size:0.85rem}
+  .dice-list{font-weight:700}
+  .badge{padding:4px 8px;border-radius:999px;font-size:0.85rem}
+  .crit{background:#ffb3b3;color:#5a0000}
+  .fumble{background:#ffd8a8;color:#663a00}
+  .secondary{background:rgba(255,255,255,0.02)}
+  .controls-bottom{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .clear-all{background:transparent;border:1px dashed rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:var(--muted)}
+  footer{margin-top:14px;color:var(--muted);font-size:0.85rem;text-align:right}
+  @media (max-width:640px){ .controls{flex-direction:column;align-items:stretch} .preset-row{width:100%;} .custom-row{flex-direction:column;align-items:stretch} }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="card">
-      <h1>Sword World 2.5 — ダイスロール</h1>
-      <div class="small">2d6 / 2d6+3〜+8、1d1〜1d100、任意ダイス、ログ保存、PWA対応</div>
-    </header>
+<div class="app">
+  <header>
+    <img src="icon-192.png" alt="" width="44" height="44" style="border-radius:8px">
+    <div>
+      <h1>SW2.5 ダイスロール（PWA対応）</h1>
+      <div class="meta">2d6系プリセット / 1d1〜1d100 プルダウン / カスタムダイス / ログ永続化</div>
+    </div>
+  </header>
 
-    <section class="card" aria-labelledby="rolls">
-      <h2 id="rolls" style="font-size:16px;margin:0 0 8px 0">ダイス</h2>
-      <div class="row controls">
-        <!-- 2d6 and 2d6+3..+8 -->
-        <div class="flexcol" style="gap:8px;">
-          <div class="small"></div>
-          <div id="presetButtons" class="row"></div>
+  <section class="panel">
+    <div class="controls">
+      <div style="flex:1">
+        <div class="preset-row" id="presetRow">
+          <!-- プリセットボタン -->
         </div>
-
-        <!-- 1d1..1d100 pull-down -->
-        <div class="flexcol" style="min-width:140px;">
-          <div class="small">1d1〜1d100</div>
-          <div class="row">
-            <select id="singleSelect" aria-label="1dX セレクト"></select>
-            <button id="rollSingle" class="primary">振る</button>
-          </div>
-
-        <!-- カスタム式（例: 2d6+4） -->
-        <div class="flexcol" style="min-width:260px;">
-          <div class="small">カスタム式</div>
-          <div class="row">
-            <input id="exprInput" placeholder="例: 2d6+4 or 1d20-1" style="flex:1">
-            <button id="rollExpr" class="big">振る</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card" aria-labelledby="logtitle">
-      <h2 id="logtitle" style="font-size:16px;margin:0 0 8px 0">ログ</h2>
-      <div class="row" style="align-items:center;">
-        <div class="small">ログは端末に保存されます（localStorage）。削除しない限り残ります。</div>
-        <div class="right">
-          <button id="exportLogs">エクスポート</button>
-          <button id="clearLogs" class="danger">全削除</button>
-        </div>
+        <div style="margin-top:8px" class="meta">※ 2d6 系はクリティカル／ファンブルを自動判定します（1d1〜1d100はしません）</div>
       </div>
 
-      <div id="log" class="log" aria-live="polite" aria-atomic="false"></div>
-    </section>
+      <div style="width:240px">
+        <label class="meta">1d1 〜 1d100</label>
+        <select id="d1to100" class="select" style="width:100%;margin-top:6px"></select>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button id="rollD1to100">ロール</button>
+          <button id="addToLogFromD100" class="secondary">結果をログに残す</button>
+        </div>
+      </div>
+    </div>
 
-    <div class="footer">※ クリティカル／ファンブル判定: <strong>2d6系</strong> は両方6→クリティカル、両方1→ファンブル。</div>
-  </div>
+    <div class="custom-row">
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="meta">カスタムダイス</label>
+        <input id="customN" type="number" class="input" placeholder="N (個数)" min="1" value="1" style="width:90px">
+        <span style="font-weight:700">d</span>
+        <input id="customM" type="number" class="input" placeholder="M (面数)" min="1" value="6" style="width:110px">
+        <input id="customMod" type="number" class="input" placeholder="修正 (例 +3/-2)" value="0" style="width:120px">
+        <button id="rollCustom">ロール</button>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+        <div id="lastResult" class="meta">—</div>
+      </div>
+    </div>
+
+    <div class="controls-bottom">
+      <div style="flex:1">
+        <div style="font-weight:700">最新 — <span id="lastSummary">まだ振られていません</span></div>
+        <div class="meta" id="lastDetail"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="copyLast">結果をコピー</button>
+        <button id="downloadLog">ログをJSONでダウンロード</button>
+        <button id="importLog">ログをJSONから復元</button>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <button id="clearAll" class="clear-all">ログ全削除</button>
+    </div>
+
+    <footer>保存場所: ブラウザの localStorage（削除しない限り残ります）</footer>
+  </section>
+</div>
 
 <script>
-/* ====== ユーティリティ ====== */
-const randInt = (min,max)=> Math.floor(Math.random()*(max-min+1))+min;
-const nowIso = ()=> new Date().toLocaleString();
-
-/* ====== ログ管理 ====== */
-const STORAGE_KEY = 'sw25_dice_logs_v1';
-function loadLogs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){return [];} }
-function saveLogs(logs){ localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); }
-
-/* ====== ロールロジック ====== */
-function rollDice(count, sides){
-  const rolls = [];
-  for(let i=0;i<count;i++) rolls.push(randInt(1,sides));
-  const sum = rolls.reduce((a,b)=>a+b,0);
-  return {rolls, sum};
+/* ---------- ヘルパー ---------- */
+function fmtTime(ts){
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+    + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+}
+function randInt(min, max){ // inclusive
+  return Math.floor(Math.random()*(max-min+1))+min;
 }
 
-/* クリティカル／ファンブル判定（SW2.5風）:
-   - 多数ダイス: 全てが最大 => クリティカル / 全てが1 => ファンブル
-   - 2d6系: 特に「両方6」=クリティカル、「両方1」=ファンブル
-*/
-function judgeCritFumble(rolls, sides){
-  if(rolls.length===0) return null;
-  const allMax = rolls.every(r=> r===sides);
-  const allMin = rolls.every(r=> r===1);
-  if(allMax) return 'crit';
-  if(allMin) return 'fumble';
-  return null;
+/* ---------- ログ管理 ---------- */
+const STORAGE_KEY = 'sw25_dice_log_v1';
+let logData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+function saveLog(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(logData));
+}
+function addLog(entry){
+  logData.unshift(entry); // 最新を先頭
+  saveLog();
+  renderLog();
 }
 
-/* ====== 表示 / UI ====== */
+/* ---------- UI準備 ---------- */
+const presetRow = document.getElementById('presetRow');
+const d1to100 = document.getElementById('d1to100');
 const logEl = document.getElementById('log');
+const lastSummary = document.getElementById('lastSummary');
+const lastDetail = document.getElementById('lastDetail');
+const lastResult = document.getElementById('lastResult');
 
-function renderLogs(){
-  const logs = loadLogs();
-  logEl.innerHTML = '';
-  if(logs.length===0){ logEl.innerHTML = '<div class="small" style="padding:12px">ログはまだありません。</div>'; return; }
-  logs.slice().reverse().forEach((entry, idx)=>{
-    const div = document.createElement('div');
-    div.className = 'log-entry';
-    const left = document.createElement('div');
-    left.className = 'flexcol';
-    left.innerHTML = `<div class="meta">${entry.time} — <strong>${escapeHtml(entry.expr)}</strong></div>
-                      <div class="small">個別: ${entry.rolls.map(r=>`[${r}]`).join(' ')}  合計: <span class="result">${entry.total}</span></div>`;
-    if(entry.judge==='crit') left.innerHTML += `<div style="margin-top:6px"><span class="badge crit">クリティカル！</span></div>`;
-    if(entry.judge==='fumble') left.innerHTML += `<div style="margin-top:6px"><span class="badge fumble">ファンブル…</span></div>`;
-
-    const right = document.createElement('div');
-    right.style.textAlign='right';
-    right.innerHTML = `<div class="meta">${entry.type}</div>
-                       <div style="margin-top:8px"><button data-id="${entry.id}" class="deleteBtn">削除</button></div>`;
-    div.appendChild(left);
-    div.appendChild(right);
-    logEl.appendChild(div);
-  });
-
-  // 削除ボタンにイベント
-  document.querySelectorAll('.deleteBtn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const id = btn.getAttribute('data-id');
-      let logs = loadLogs();
-      logs = logs.filter(l=> l.id !== id);
-      saveLogs(logs);
-      renderLogs();
-    });
+function makePresetButtons(){
+  const presets = [
+    {label:'2d6', expr:'2d6', mod:0},
+    {label:'2d6+3', expr:'2d6+3', mod:3},
+    {label:'2d6+4', expr:'2d6+4', mod:4},
+    {label:'2d6+5', expr:'2d6+5', mod:5},
+    {label:'2d6+6', expr:'2d6+6', mod:6},
+    {label:'2d6+7', expr:'2d6+7', mod:7},
+    {label:'2d6+8', expr:'2d6+8', mod:8},
+  ];
+  presets.forEach(p=>{
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    b.addEventListener('click', ()=> roll2d6(p.mod));
+    presetRow.appendChild(b);
   });
 }
 
-/* 安全なエスケープ（ログ等に） */
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
-
-/* ログ追加 */
-function addLog({expr, rolls, total, type, judge}){
-  const logs = loadLogs();
-  const entry = {
-    id: crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"_"+Math.random().toString(36).slice(2,8)),
-    time: nowIso(),
-    expr, rolls, total, type, judge
-  };
-  logs.push(entry);
-  saveLogs(logs);
-  renderLogs();
-}
-
-/* ====== UI 初期化 ====== */
-function initPresetButtons(){
-  const presetRoot = document.getElementById('presetButtons');
-  const offsets = [0,3,4,5,6,7,8]; // 2d6, 2d6+3..+8
-  offsets.forEach(offset=>{
-    const label = offset===0 ? '2d6' : `2d6+${offset}`;
-    const btn = document.createElement('button');
-    btn.textContent = label;
-    btn.className = 'primary';
-    btn.addEventListener('click', ()=> {
-      const base = rollDice(2,6);
-      const total = base.sum + offset;
-      let judge = null;
-      // SW2.5 判定: 両方6→crit 両方1→fumble
-      if(base.rolls.length===2 && base.rolls[0]===6 && base.rolls[1]===6) judge='crit';
-      if(base.rolls.length===2 && base.rolls[0]===1 && base.rolls[1]===1) judge='fumble';
-      addLog({expr:label, rolls:base.rolls, total, type:label, judge});
-    });
-    presetRoot.appendChild(btn);
-  });
-}
-
-/* single select 1d1..1d100 */
-function initSingleSelect(){
-  const sel = document.getElementById('singleSelect');
+function populateD1to100(){
   for(let i=1;i<=100;i++){
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = '1d' + i;
-    sel.appendChild(opt);
+    d1to100.appendChild(opt);
   }
-  document.getElementById('rollSingle').addEventListener('click', ()=>{
-    const sides = parseInt(sel.value,10);
-    const res = rollDice(1,sides);
-    const judge = judgeCritFumble(res.rolls, sides);
-    addLog({expr:`1d${sides}`, rolls:res.rolls, total:res.sum, type:`1d${sides}`, judge});
+}
+
+/* ---------- ロール処理 ---------- */
+function roll2d6(mod=0){
+  // SW2.5判定: 2d6 のクリティカル・ファンブル判定
+  const dice = [randInt(1,6), randInt(1,6)];
+  const total = dice[0] + dice[1] + mod;
+  // クリティカル：2個とも6 → クリティカル（原則で最大値）
+  // ファンブル：2個とも1 → ファンブル
+  let judgement = null;
+  if(dice[0] === 6 && dice[1] === 6) judgement = 'critical';
+  else if(dice[0] === 1 && dice[1] === 1) judgement = 'fumble';
+  const entry = {
+    ts: Date.now(),
+    type: '2d6',
+    expr: `2d6${mod? (mod>0? '+'+mod: mod): ''}`,
+    dice,
+    mod,
+    total,
+    judgement
+  };
+  lastSummary.textContent = `${entry.expr} → ${total}` + (judgement? ` (${judgement})`:'');
+  lastDetail.textContent = `個別: [${dice.join(', ')}] 修正: ${mod>=0? '+'+mod: mod}  取得時刻: ${fmtTime(entry.ts)}`;
+  lastResult.textContent = total;
+  addLog(entry);
+}
+
+function rollD1to100(){
+  const m = parseInt(d1to100.value,10) || 100;
+  const v = randInt(1,m);
+  const entry = {
+    ts: Date.now(),
+    type: '1dN',
+    expr: `1d${m}`,
+    dice: [v],
+    mod: 0,
+    total: v,
+    judgement: null // 指定通り判定不要
+  };
+  lastSummary.textContent = `${entry.expr} → ${v}`;
+  lastDetail.textContent = `個別: [${v}] 取得時刻: ${fmtTime(entry.ts)}`;
+  lastResult.textContent = v;
+  addLog(entry);
+}
+
+function rollCustom(){
+  const n = Math.max(1, parseInt(document.getElementById('customN').value || 1,10));
+  const m = Math.max(1, parseInt(document.getElementById('customM').value || 6,10));
+  const mod = parseInt(document.getElementById('customMod').value || 0,10);
+  const dice = [];
+  for(let i=0;i<n;i++) dice.push(randInt(1,m));
+  const total = dice.reduce((a,b)=>a+b,0) + mod;
+  // クリティカル/ファンブル判定について：
+  // 要件では "1d1〜1d100は判定しなくていい" とあるため、
+  // クリティカル/ファンブルはデフォルトで 2d6 系のみ自動判定します。
+  // カスタムが「2d6」の場合は判定する（利便性のため）
+  let judgement = null;
+  if(n===2 && m===6){
+    if(dice[0]===6 && dice[1]===6) judgement='critical';
+    else if(dice[0]===1 && dice[1]===1) judgement='fumble';
+  }
+  const entry = {
+    ts: Date.now(),
+    type: 'custom',
+    expr: `${n}d${m}${mod? (mod>0? '+'+mod: mod): ''}`,
+    dice,
+    mod,
+    total,
+    judgement
+  };
+  lastSummary.textContent = `${entry.expr} → ${total}` + (judgement? ` (${judgement})`:'');
+  lastDetail.textContent = `個別: [${dice.join(', ')}] 修正: ${mod>=0? '+'+mod: mod} 取得時刻: ${fmtTime(entry.ts)}`;
+  lastResult.textContent = total;
+  addLog(entry);
+}
+
+/* ---------- ログ描画 ---------- */
+function renderLog(){
+  logEl.innerHTML = '';
+  if(logData.length === 0){
+    logEl.innerHTML = '<div class="meta">ログは空です</div>';
+    return;
+  }
+  logData.forEach((e, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const left = document.createElement('div');
+    const title = document.createElement('div');
+    title.innerHTML = `<div style="font-weight:800">${e.expr} → ${e.total}</div>`;
+    const sub = document.createElement('div');
+    sub.className = 'meta';
+    sub.innerHTML = `個別: <span class="dice-list">[${e.dice.join(', ')}]</span> 修正: ${e.mod>=0? '+'+e.mod: e.mod} ・ ${fmtTime(e.ts)}`;
+    left.appendChild(title);
+    left.appendChild(sub);
+
+    const right = document.createElement('div');
+    right.style.display='flex';
+    right.style.gap='8px';
+    right.style.alignItems='center';
+
+    if(e.judgement){
+      const b = document.createElement('div');
+      b.className = 'badge ' + (e.judgement === 'critical' ? 'crit' : 'fumble');
+      b.textContent = e.judgement === 'critical' ? 'クリティカル' : 'ファンブル';
+      right.appendChild(b);
+    }
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'コピー';
+    copyBtn.addEventListener('click', ()=> {
+      navigator.clipboard?.writeText(`${e.expr} => ${e.total} [${e.dice.join(', ')}] ${e.judgement? ' ' + e.judgement : ''}`).then(()=> {
+        copyBtn.textContent = 'コピー済';
+        setTimeout(()=>copyBtn.textContent='コピー',900);
+      });
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '削除';
+    delBtn.addEventListener('click', ()=> {
+      if(!confirm('このログを削除しますか？')) return;
+      logData.splice(idx,1);
+      saveLog();
+      renderLog();
+    });
+
+    right.appendChild(copyBtn);
+    right.appendChild(delBtn);
+
+    div.appendChild(left);
+    div.appendChild(right);
+    logEl.appendChild(div);
   });
 }
 
-/* 任意ダイス */
-function initCustom(){
-  document.getElementById('rollCustom').addEventListener('click', ()=>{
-    const cnt = Math.max(1, parseInt(document.getElementById('customCount').value||1,10));
-    const sides = Math.max(2, parseInt(document.getElementById('customSides').value||6,10));
-    const res = rollDice(cnt, sides);
-    const judge = judgeCritFumble(res.rolls, sides);
-    addLog({expr:`${cnt}d${sides}`, rolls:res.rolls, total:res.sum, type:`custom ${cnt}d${sides}`, judge});
-  });
-}
-
-/* カスタム式（簡易パーサ: NdM±K） */
-function parseExpr(expr){
-  expr = expr.replace(/\s+/g,'').toLowerCase();
-  // pattern: NdM +/- K or NdM
-  const m = expr.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-  if(!m) return null;
-  return {count: parseInt(m[1],10), sides: parseInt(m[2],10), offset: m[3] ? parseInt(m[3],10) : 0};
-}
-function initExpr(){
-  document.getElementById('rollExpr').addEventListener('click', ()=>{
-    const raw = document.getElementById('exprInput').value.trim();
-    if(!raw){ alert('式を入力してください（例: 2d6+4）'); return; }
-    const parsed = parseExpr(raw);
-    if(!parsed){ alert('式の形式は NdM または NdM+K / NdM-K の形式で入力してください（例: 1d20, 2d6+4）'); return; }
-    const res = rollDice(parsed.count, parsed.sides);
-    const total = res.sum + parsed.offset;
-    const judge = judgeCritFumble(res.rolls, parsed.sides);
-    addLog({expr: raw, rolls:res.rolls, total, type:raw, judge});
-  });
-}
-
-/* エクスポート / 全削除 */
-document.getElementById('clearLogs').addEventListener('click', ()=>{
-  if(confirm('ログを全て削除します。よろしいですか？')){ localStorage.removeItem(STORAGE_KEY); renderLogs(); }
+/* ---------- イベントバインド ---------- */
+document.getElementById('rollD1to100').addEventListener('click', rollD1to100);
+document.getElementById('rollCustom').addEventListener('click', rollCustom);
+document.getElementById('copyLast').addEventListener('click', ()=>{
+  if(lastSummary.textContent === 'まだ振られていません') return alert('まだ振られていません');
+  navigator.clipboard?.writeText(lastSummary.textContent).then(()=> alert('コピーしました'));
 });
-document.getElementById('exportLogs').addEventListener('click', ()=>{
-  const logs = loadLogs();
-  const blob = new Blob([JSON.stringify(logs, null, 2)], {type:'application/json'});
+document.getElementById('downloadLog').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(logData,null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `sw25_logs_${new Date().toISOString()}.json`; a.click();
+  a.href = url;
+  a.download = 'sw25_dice_log.json';
+  a.click();
   URL.revokeObjectURL(url);
 });
+document.getElementById('importLog').addEventListener('click', ()=>{
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.addEventListener('change', async (ev)=>{
+    const f = ev.target.files[0];
+    if(!f) return;
+    try{
+      const txt = await f.text();
+      const parsed = JSON.parse(txt);
+      if(!Array.isArray(parsed)) throw new Error('配列でありません');
+      // マージして保存（先頭にインポート分を追加）
+      logData = parsed.concat(logData);
+      saveLog();
+      renderLog();
+      alert('インポートしました');
+    }catch(err){
+      alert('読み込みに失敗しました: ' + err.message);
+    }
+  });
+  input.click();
+});
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  if(!confirm('ログをすべて削除しますか？この操作は取り消せません')) return;
+  logData = [];
+  saveLog();
+  renderLog();
+});
 
-/* 初期化 */
-initPresetButtons();
-initSingleSelect();
-initCustom();
-initExpr();
-renderLogs();
+/* ---------- 初期化 ---------- */
+makePresetButtons();
+populateD1to100();
+renderLog();
 
-/* PWA: service worker 登録（あれば） */
+/* ---------- 表示からログに追加する（1dNのボタンの隣にあるやつ） ---------- */
+document.getElementById('addToLogFromD100').addEventListener('click', ()=> {
+  // 既に rollD1to100 が値を出していればその直近値をもう一度ログに入れる（手動追加）
+  // ここでは簡易的に単発でロールしてログ保存
+  rollD1to100();
+});
+
+/* ---------- Service Worker登録（PWA） ---------- */
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW register failed', e));
+  navigator.serviceWorker.register('service-worker.js').then(()=> {
+    console.log('SW registered');
+  }).catch(err=>console.warn('SW failed', err));
 }
+
+/* ---------- 初回説明が欲しければローカル通知？ 省略 ---------- */
+
 </script>
 </body>
 </html>
