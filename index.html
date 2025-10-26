@@ -1,179 +1,287 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SW2.5 ダイスロール</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sword World 2.5 ダイスロール</title>
 
-<!-- ▼ PWA設定 -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0b1220">
-<link rel="icon" href="dice-icon.png">
-<!-- ▲ PWA設定 -->
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="icon" href="icons/dice-icon-192.png" />
 
-<style>
-body {
-  font-family: "Segoe UI", sans-serif;
-  background: #1e2530;
-  color: #fff;
-  text-align: center;
-  padding: 20px;
-}
-h1 {
-  font-size: 1.5em;
-  margin-bottom: 15px;
-}
-button, select, input {
-  font-size: 1.1em;
-  margin: 5px;
-  padding: 10px 15px;
-  border-radius: 8px;
-  border: none;
-  background: #3b82f6;
-  color: white;
-}
-button:hover, select:hover, input:hover {
-  opacity: 0.9;
-}
-input {
-  width: 140px;
-  text-align: center;
-  background: #374151;
-}
-#log {
-  background: #111827;
-  border-radius: 10px;
-  padding: 10px;
-  margin-top: 15px;
-  text-align: left;
-  max-height: 300px;
-  overflow-y: auto;
-}
-#clearLog {
-  background: #ef4444;
-}
-.result {
-  font-weight: bold;
-  color: #38bdf8;
-}
-.crit {
-  color: #facc15;
-  font-weight: bold;
-}
-.fumble {
-  color: #f87171;
-  font-weight: bold;
-}
-</style>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#0f1724; --accent:#f59e0b; --muted:#98a0b3;
+      --glass: rgba(255,255,255,0.02);
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071020, #0b1220); color:#e6eef8; font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    .wrap{max-width:980px;margin:28px auto;padding:20px;}
+    header h1{margin:0 0 8px 0;font-size:20px;}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);margin-bottom:16px;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+    button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px 12px;border-radius:10px;cursor:pointer;}
+    button.primary{background:linear-gradient(180deg,#1b2b48,#122033);border:1px solid rgba(255,255,255,0.06);}
+    button.danger{background:#7f1724;color:#fff;}
+    select, input[type=number]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;}
+    .big{font-size:18px;padding:12px 16px;}
+    .log{max-height:360px;overflow:auto;margin-top:12px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);}
+    .log-entry{padding:8px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:flex-start;}
+    .meta{color:var(--muted);font-size:12px;}
+    .badge{padding:4px 8px;border-radius:999px;font-weight:600;}
+    .crit{background:linear-gradient(90deg,#ffe9b0,#ffd000);color:#111}
+    .fumble{background:linear-gradient(90deg,#f8b4b4,#ef4444);color:#111}
+    .result{font-weight:700;font-size:16px}
+    .small{font-size:13px;color:var(--muted)}
+    .flexcol{display:flex;flex-direction:column;}
+    .right{margin-left:auto;}
+    .footer{color:var(--muted);font-size:13px;margin-top:8px;}
+    @media (max-width:640px){.row{flex-direction:column;align-items:stretch}}
+  </style>
 </head>
 <body>
-<h1>SW2.5 ダイスロール</h1>
+  <div class="wrap">
+    <header class="card">
+      <h1>Sword World 2.5 — ダイスロール</h1>
+      <div class="small">2d6 / 2d6+3〜+8、1d1〜1d100、任意ダイス、ログ保存、PWA対応</div>
+    </header>
 
-<!-- 固定ボタン -->
-<div id="diceButtons">
-  <button onclick="roll('2d6')">2d6</button>
-  <button onclick="roll('2d6+3')">2d6+3</button>
-  <button onclick="roll('2d6+4')">2d6+4</button>
-  <button onclick="roll('2d6+5')">2d6+5</button>
-  <button onclick="roll('2d6+6')">2d6+6</button>
-  <button onclick="roll('2d6+7')">2d6+7</button>
-  <button onclick="roll('2d6+8')">2d6+8</button>
-</div>
+    <section class="card" aria-labelledby="rolls">
+      <h2 id="rolls" style="font-size:16px;margin:0 0 8px 0">定型ダイス</h2>
+      <div class="row controls">
+        <!-- 2d6 and 2d6+3..+8 -->
+        <div class="flexcol" style="gap:8px;">
+          <div class="small">2d6 系</div>
+          <div id="presetButtons" class="row"></div>
+        </div>
 
-<!-- 任意ダイス式 -->
-<div style="margin-top:15px;">
-  <input type="text" id="customInput" placeholder="例: 3d6+2d4+5" />
-  <button onclick="rollCustom()">ロール</button>
-</div>
+        <!-- 1d1..1d100 pull-down -->
+        <div class="flexcol" style="min-width:140px;">
+          <div class="small">1d1〜1d100</div>
+          <div class="row">
+            <select id="singleSelect" aria-label="1dX セレクト"></select>
+            <button id="rollSingle" class="primary">振る</button>
+          </div>
+        </div>
 
-<h2>ログ</h2>
-<div id="log"></div>
-<button id="clearLog" onclick="clearLog()">ログ削除</button>
+        <!-- 任意ダイス -->
+        <div class="flexcol" style="min-width:220px;">
+          <div class="small">任意ダイス</div>
+          <div class="row">
+            <label class="small">個数 <input id="customCount" type="number" min="1" value="1" style="width:70px"></label>
+            <label class="small">面数 d<input id="customSides" type="number" min="2" value="6" style="width:70px"></label>
+            <button id="rollCustom" class="primary">振る</button>
+          </div>
+        </div>
+
+        <!-- カスタム式（例: 2d6+4） -->
+        <div class="flexcol" style="min-width:260px;">
+          <div class="small">カスタム式（例: 2d6+4）</div>
+          <div class="row">
+            <input id="exprInput" placeholder="例: 2d6+4 or 1d20-1" style="flex:1">
+            <button id="rollExpr" class="big">振る</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="logtitle">
+      <h2 id="logtitle" style="font-size:16px;margin:0 0 8px 0">ログ</h2>
+      <div class="row" style="align-items:center;">
+        <div class="small">ログは端末に保存されます（localStorage）。削除しない限り残ります。</div>
+        <div class="right">
+          <button id="exportLogs">エクスポート</button>
+          <button id="clearLogs" class="danger">全削除</button>
+        </div>
+      </div>
+
+      <div id="log" class="log" aria-live="polite" aria-atomic="false"></div>
+    </section>
+
+    <div class="footer">※ クリティカル／ファンブル判定: <strong>2d6系</strong> は両方6→クリティカル、両方1→ファンブル。<strong>単発</strong>は最大→クリティカル、1→ファンブル。任意ダイスは全て最大 or 全て1で同様に扱います。</div>
+  </div>
 
 <script>
-// ▼ ダイスロール処理（複合式対応）
-function roll(expression) {
-  // 式を分解
-  const dicePattern = /([+-]?\d*)d(\d+)/gi;
-  let total = 0;
-  let rollsText = [];
-  let match;
-  let expr = expression.replace(/\s+/g, '');
+/* ====== ユーティリティ ====== */
+const randInt = (min,max)=> Math.floor(Math.random()*(max-min+1))+min;
+const nowIso = ()=> new Date().toLocaleString();
 
-  while ((match = dicePattern.exec(expr)) !== null) {
-    const sign = match[1].startsWith('-') ? -1 : 1;
-    const num = Math.abs(parseInt(match[1])) || 1;
-    const sides = parseInt(match[2]);
-    let rolls = [];
-    for (let i = 0; i < num; i++) {
-      rolls.push(Math.floor(Math.random() * sides) + 1);
-    }
-    const sum = rolls.reduce((a,b)=>a+b,0) * sign;
-    total += sum;
-    rollsText.push(`${sign===-1?"-":""}[${rolls.join(", ")}]`);
-  }
+/* ====== ログ管理 ====== */
+const STORAGE_KEY = 'sw25_dice_logs_v1';
+function loadLogs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){return [];} }
+function saveLogs(logs){ localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); }
 
-  // ボーナス/ペナルティ処理
-  const rest = expr.replace(dicePattern, '');
-  if (rest) {
-    const bonusParts = rest.match(/[+-]\d+/g);
-    if (bonusParts) {
-      bonusParts.forEach(v => total += parseInt(v));
-      rollsText.push(rest);
-    }
-  }
-
-  // クリティカル・ファンブル判定（2d6のときのみ）
-  let special = "";
-  if (/^2d6(\+\d+)?$/i.test(expression.trim())) {
-    const justRoll = rollsText[0].replace(/[^0-9,]/g,'').split(',').map(Number);
-    const sum = justRoll.reduce((a,b)=>a+b,0);
-    if (sum === 12) special = " 💥<span class='crit'>クリティカル！</span>";
-    if (sum === 2) special = " 💀<span class='fumble'>ファンブル！</span>";
-  }
-
-  const time = new Date().toLocaleTimeString("ja-JP",{hour12:false});
-  const resultText = `[${time}] ${expression} → ${rollsText.join(" ")} = <span class="result">${total}</span>${special}`;
-  addLog(resultText);
+/* ====== ロールロジック ====== */
+function rollDice(count, sides){
+  const rolls = [];
+  for(let i=0;i<count;i++) rolls.push(randInt(1,sides));
+  const sum = rolls.reduce((a,b)=>a+b,0);
+  return {rolls, sum};
 }
 
-// ▼ 任意式ロール
-function rollCustom() {
-  const val = document.getElementById("customInput").value;
-  if (!val) return;
-  roll(val);
+/* クリティカル／ファンブル判定（SW2.5風）:
+   - 多数ダイス: 全てが最大 => クリティカル / 全てが1 => ファンブル
+   - 単発(d1〜d100): 最大=クリティカル、1=ファンブル
+   - 2d6系: 特に「両方6」=クリティカル、「両方1」=ファンブル
+*/
+function judgeCritFumble(rolls, sides){
+  if(rolls.length===0) return null;
+  const allMax = rolls.every(r=> r===sides);
+  const allMin = rolls.every(r=> r===1);
+  if(allMax) return 'crit';
+  if(allMin) return 'fumble';
+  return null;
 }
 
-// ▼ ログ管理
-function addLog(text) {
-  const log = document.getElementById("log");
-  const entry = document.createElement("div");
-  entry.innerHTML = text;
-  log.prepend(entry);
-  saveLog();
-}
-function saveLog() {
-  localStorage.setItem("sw25_dice_log", document.getElementById("log").innerHTML);
-}
-function loadLog() {
-  const saved = localStorage.getItem("sw25_dice_log");
-  if (saved) document.getElementById("log").innerHTML = saved;
-}
-function clearLog() {
-  if (confirm("ログをすべて削除しますか？")) {
-    document.getElementById("log").innerHTML = "";
-    localStorage.removeItem("sw25_dice_log");
-  }
-}
+/* ====== 表示 / UI ====== */
+const logEl = document.getElementById('log');
 
-// 初期化
-loadLog();
+function renderLogs(){
+  const logs = loadLogs();
+  logEl.innerHTML = '';
+  if(logs.length===0){ logEl.innerHTML = '<div class="small" style="padding:12px">ログはまだありません。</div>'; return; }
+  logs.slice().reverse().forEach((entry, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    const left = document.createElement('div');
+    left.className = 'flexcol';
+    left.innerHTML = `<div class="meta">${entry.time} — <strong>${escapeHtml(entry.expr)}</strong></div>
+                      <div class="small">個別: ${entry.rolls.map(r=>`[${r}]`).join(' ')}  合計: <span class="result">${entry.total}</span></div>`;
+    if(entry.judge==='crit') left.innerHTML += `<div style="margin-top:6px"><span class="badge crit">クリティカル！</span></div>`;
+    if(entry.judge==='fumble') left.innerHTML += `<div style="margin-top:6px"><span class="badge fumble">ファンブル…</span></div>`;
 
-// ▼ PWA Service Worker 登録
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
+    const right = document.createElement('div');
+    right.style.textAlign='right';
+    right.innerHTML = `<div class="meta">${entry.type}</div>
+                       <div style="margin-top:8px"><button data-id="${entry.id}" class="deleteBtn">削除</button></div>`;
+    div.appendChild(left);
+    div.appendChild(right);
+    logEl.appendChild(div);
   });
+
+  // 削除ボタンにイベント
+  document.querySelectorAll('.deleteBtn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const id = btn.getAttribute('data-id');
+      let logs = loadLogs();
+      logs = logs.filter(l=> l.id !== id);
+      saveLogs(logs);
+      renderLogs();
+    });
+  });
+}
+
+/* 安全なエスケープ（ログ等に） */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* ログ追加 */
+function addLog({expr, rolls, total, type, judge}){
+  const logs = loadLogs();
+  const entry = {
+    id: crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"_"+Math.random().toString(36).slice(2,8)),
+    time: nowIso(),
+    expr, rolls, total, type, judge
+  };
+  logs.push(entry);
+  saveLogs(logs);
+  renderLogs();
+}
+
+/* ====== UI 初期化 ====== */
+function initPresetButtons(){
+  const presetRoot = document.getElementById('presetButtons');
+  const offsets = [0,3,4,5,6,7,8]; // 2d6, 2d6+3..+8
+  offsets.forEach(offset=>{
+    const label = offset===0 ? '2d6' : `2d6+${offset}`;
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.className = 'primary';
+    btn.addEventListener('click', ()=> {
+      const base = rollDice(2,6);
+      const total = base.sum + offset;
+      let judge = null;
+      // SW2.5 判定: 両方6→crit 両方1→fumble
+      if(base.rolls.length===2 && base.rolls[0]===6 && base.rolls[1]===6) judge='crit';
+      if(base.rolls.length===2 && base.rolls[0]===1 && base.rolls[1]===1) judge='fumble';
+      addLog({expr:label, rolls:base.rolls, total, type:label, judge});
+    });
+    presetRoot.appendChild(btn);
+  });
+}
+
+/* single select 1d1..1d100 */
+function initSingleSelect(){
+  const sel = document.getElementById('singleSelect');
+  for(let i=1;i<=100;i++){
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = '1d' + i;
+    sel.appendChild(opt);
+  }
+  document.getElementById('rollSingle').addEventListener('click', ()=>{
+    const sides = parseInt(sel.value,10);
+    const res = rollDice(1,sides);
+    const judge = judgeCritFumble(res.rolls, sides);
+    addLog({expr:`1d${sides}`, rolls:res.rolls, total:res.sum, type:`1d${sides}`, judge});
+  });
+}
+
+/* 任意ダイス */
+function initCustom(){
+  document.getElementById('rollCustom').addEventListener('click', ()=>{
+    const cnt = Math.max(1, parseInt(document.getElementById('customCount').value||1,10));
+    const sides = Math.max(2, parseInt(document.getElementById('customSides').value||6,10));
+    const res = rollDice(cnt, sides);
+    const judge = judgeCritFumble(res.rolls, sides);
+    addLog({expr:`${cnt}d${sides}`, rolls:res.rolls, total:res.sum, type:`custom ${cnt}d${sides}`, judge});
+  });
+}
+
+/* カスタム式（簡易パーサ: NdM±K） */
+function parseExpr(expr){
+  expr = expr.replace(/\s+/g,'').toLowerCase();
+  // pattern: NdM +/- K or NdM
+  const m = expr.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+  if(!m) return null;
+  return {count: parseInt(m[1],10), sides: parseInt(m[2],10), offset: m[3] ? parseInt(m[3],10) : 0};
+}
+function initExpr(){
+  document.getElementById('rollExpr').addEventListener('click', ()=>{
+    const raw = document.getElementById('exprInput').value.trim();
+    if(!raw){ alert('式を入力してください（例: 2d6+4）'); return; }
+    const parsed = parseExpr(raw);
+    if(!parsed){ alert('式の形式は NdM または NdM+K / NdM-K の形式で入力してください（例: 1d20, 2d6+4）'); return; }
+    const res = rollDice(parsed.count, parsed.sides);
+    const total = res.sum + parsed.offset;
+    const judge = judgeCritFumble(res.rolls, parsed.sides);
+    addLog({expr: raw, rolls:res.rolls, total, type:raw, judge});
+  });
+}
+
+/* エクスポート / 全削除 */
+document.getElementById('clearLogs').addEventListener('click', ()=>{
+  if(confirm('ログを全て削除します。よろしいですか？')){ localStorage.removeItem(STORAGE_KEY); renderLogs(); }
+});
+document.getElementById('exportLogs').addEventListener('click', ()=>{
+  const logs = loadLogs();
+  const blob = new Blob([JSON.stringify(logs, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `sw25_logs_${new Date().toISOString()}.json`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* 初期化 */
+initPresetButtons();
+initSingleSelect();
+initCustom();
+initExpr();
+renderLogs();
+
+/* PWA: service worker 登録（あれば） */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW register failed', e));
 }
 </script>
 </body>
