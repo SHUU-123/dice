@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SW2.5 ダイスロール</title>
+
+<!-- ▼ PWA設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="dice-icon.png">
+<!-- ▲ PWA設定 -->
+
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #1e2530;
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+}
+h1 {
+  font-size: 1.5em;
+  margin-bottom: 15px;
+}
+button, select, input {
+  font-size: 1.1em;
+  margin: 5px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+}
+button:hover, select:hover, input:hover {
+  opacity: 0.9;
+}
+input {
+  width: 140px;
+  text-align: center;
+  background: #374151;
+}
+#log {
+  background: #111827;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 15px;
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+}
+#clearLog {
+  background: #ef4444;
+}
+.result {
+  font-weight: bold;
+  color: #38bdf8;
+}
+.crit {
+  color: #facc15;
+  font-weight: bold;
+}
+.fumble {
+  color: #f87171;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<h1>SW2.5 ダイスロール</h1>
+
+<!-- 固定ボタン -->
+<div id="diceButtons">
+  <button onclick="roll('2d6')">2d6</button>
+  <button onclick="roll('2d6+3')">2d6+3</button>
+  <button onclick="roll('2d6+4')">2d6+4</button>
+  <button onclick="roll('2d6+5')">2d6+5</button>
+  <button onclick="roll('2d6+6')">2d6+6</button>
+  <button onclick="roll('2d6+7')">2d6+7</button>
+  <button onclick="roll('2d6+8')">2d6+8</button>
+</div>
+
+<!-- 任意ダイス式 -->
+<div style="margin-top:15px;">
+  <input type="text" id="customInput" placeholder="例: 3d6+2d4+5" />
+  <button onclick="rollCustom()">ロール</button>
+</div>
+
+<h2>ログ</h2>
+<div id="log"></div>
+<button id="clearLog" onclick="clearLog()">ログ削除</button>
+
+<script>
+// ▼ ダイスロール処理（複合式対応）
+function roll(expression) {
+  // 式を分解
+  const dicePattern = /([+-]?\d*)d(\d+)/gi;
+  let total = 0;
+  let rollsText = [];
+  let match;
+  let expr = expression.replace(/\s+/g, '');
+
+  while ((match = dicePattern.exec(expr)) !== null) {
+    const sign = match[1].startsWith('-') ? -1 : 1;
+    const num = Math.abs(parseInt(match[1])) || 1;
+    const sides = parseInt(match[2]);
+    let rolls = [];
+    for (let i = 0; i < num; i++) {
+      rolls.push(Math.floor(Math.random() * sides) + 1);
+    }
+    const sum = rolls.reduce((a,b)=>a+b,0) * sign;
+    total += sum;
+    rollsText.push(`${sign===-1?"-":""}[${rolls.join(", ")}]`);
+  }
+
+  // ボーナス/ペナルティ処理
+  const rest = expr.replace(dicePattern, '');
+  if (rest) {
+    const bonusParts = rest.match(/[+-]\d+/g);
+    if (bonusParts) {
+      bonusParts.forEach(v => total += parseInt(v));
+      rollsText.push(rest);
+    }
+  }
+
+  // クリティカル・ファンブル判定（2d6のときのみ）
+  let special = "";
+  if (/^2d6(\+\d+)?$/i.test(expression.trim())) {
+    const justRoll = rollsText[0].replace(/[^0-9,]/g,'').split(',').map(Number);
+    const sum = justRoll.reduce((a,b)=>a+b,0);
+    if (sum === 12) special = " 💥<span class='crit'>クリティカル！</span>";
+    if (sum === 2) special = " 💀<span class='fumble'>ファンブル！</span>";
+  }
+
+  const time = new Date().toLocaleTimeString("ja-JP",{hour12:false});
+  const resultText = `[${time}] ${expression} → ${rollsText.join(" ")} = <span class="result">${total}</span>${special}`;
+  addLog(resultText);
+}
+
+// ▼ 任意式ロール
+function rollCustom() {
+  const val = document.getElementById("customInput").value;
+  if (!val) return;
+  roll(val);
+}
+
+// ▼ ログ管理
+function addLog(text) {
+  const log = document.getElementById("log");
+  const entry = document.createElement("div");
+  entry.innerHTML = text;
+  log.prepend(entry);
+  saveLog();
+}
+function saveLog() {
+  localStorage.setItem("sw25_dice_log", document.getElementById("log").innerHTML);
+}
+function loadLog() {
+  const saved = localStorage.getItem("sw25_dice_log");
+  if (saved) document.getElementById("log").innerHTML = saved;
+}
+function clearLog() {
+  if (confirm("ログをすべて削除しますか？")) {
+    document.getElementById("log").innerHTML = "";
+    localStorage.removeItem("sw25_dice_log");
+  }
+}
+
+// 初期化
+loadLog();
+
+// ▼ PWA Service Worker 登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
+</script>
+</body>
+</html>
